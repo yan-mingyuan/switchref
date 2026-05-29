@@ -1,188 +1,84 @@
 # SwitchRef
 
-This repository contains the code, data, and experiment artifacts for the manuscript **"Switching-Reference Voltage Control for Distribution Systems with AI-Training Data Centers"**.
+Code and data for **Switching-Reference Voltage Control for Distribution Systems with AI-Training Data Centers**.
 
-The codebase is prepared for public release alongside the paper. The current preprint is available on arXiv: [arXiv:2603.15588](https://arxiv.org/abs/2603.15588).
+Preprint: [arXiv:2603.15588](https://arxiv.org/abs/2603.15588)
 
 ## Overview
 
-Large-scale AI training workloads can induce rapid, periodic power fluctuations in modern data centers. When such data centers are connected to a distribution feeder, these fluctuations can create substantial voltage deviations. Conventional voltage regulation methods, including standard droop-based schemes, are primarily designed for more slowly varying demand and may therefore be inefficient or overly aggressive in this setting.
+Large-scale AI training workloads induce rapid, near-periodic power fluctuations at the data-center bus. When such loads are connected to a distribution feeder, conventional droop-style voltage regulation either chases the fluctuations too aggressively (high reactive effort) or fails to keep voltage inside the operating band. This repository implements the **switching-reference controller** (Algorithm&nbsp;1), which adapts a per-bus reference $v^{\mathrm{ref}}$ to the workload's two-phase structure and absorbs the periodic component before it reaches the droop loop.
 
-This repository studies that problem and implements a **switching-reference voltage control** framework that exploits the structured behavior of AI-training loads. The main goal is to reduce:
+The same dimensionless design rule, with four constants $(\alpha,\beta,\gamma,c) = (1,\,1,\,1/8,\,1/4)$, is used across every experiment; only the workload cycle period varies per trace.
 
-- voltage deviations along the feeder
-- reactive power control effort required for voltage support
+## Repository structure
 
-The repository includes both the main switching-reference control experiments and supporting data-center-aware feeder studies used during manuscript development.
-
-## Main Components
-
-The repository is organized around two complementary experiment tracks.
-
-### 1. Switching-reference control experiments
-
-The main manuscript experiments are implemented in:
-
-```text
-decentralized_switching/main.ipynb
 ```
-
-This notebook contains the decentralized switching-reference control workflow. It loads the linearized feeder model, applies the local voltage-control logic, and generates the main simulation results.
-
-### 2. Data-center-aware feeder experiments
-
-Supporting experiments involving AI-training traces, feeder voltage response, and internal data-center control structure are implemented in:
-
-```text
-datacenter_optimization/historic-power-droop.ipynb
-```
-
-This notebook works with real or processed AI-training traces together with the IEEE 33-bus feeder model and the data-center abstractions defined in `datacenter_network_class.py`.
-
-## Repository Structure
-
-```text
 switchref/
-|-- data/
-|   |-- traces_raw/                  # Raw AI-training power trace CSV files
-|   `-- traces_regulated.pkl         # Processed trace artifact
-|-- datacenter_optimization/
-|   |-- datacenter_network_class.py  # Distribution network, storage, and data-center models
-|   |-- generate_rack_load.py        # Trace loading and synthetic rack/PDU load generation
-|   |-- Bus_Data_33bus.csv           # IEEE 33-bus bus data
-|   |-- Branch_Data_33bus.csv        # IEEE 33-bus branch data
-|   `-- historic-power-droop.ipynb   # Data-center-aware voltage and load-shaping experiments
-|-- decentralized_switching/
-|   |-- main.ipynb                   # Main switching-reference control experiments
-|   |-- TestCase33.mat               # Linearized IEEE 33-bus feeder model
-|   `-- linear_gain.pckl             # Precomputed controller gain
-`-- figures/                         # Exported manuscript figures
+├── README.md
+├── LICENSE
+├── pyproject.toml                          # `pip install -e .` makes `switchref` importable anywhere
+├── switchref/
+│   ├── config.py
+│   ├── env.py                              # linear voltage model
+│   ├── case33.py                           # IEEE 33-bus loader + droop gain
+│   ├── controllers.py                      # Algorithm 1 (AdaRefVBiasAmpMaxDV)
+│   ├── utils.py                            # actions, disturbance shaping, metrics
+│   ├── plotting.py                         # publication plot helpers
+│   └── runners.py                          # scenario setup + trace loaders
+├── data/
+│   ├── case33/
+│   │   ├── TestCase33.mat                  # linearized IEEE 33-bus model
+│   │   └── linear_gain.pkl                 # pre-computed per-bus droop gain
+│   ├── traces/
+│   │   ├── dgx_h100_choukse.csv            # DGX-H100 rack (Choukse 2025)
+│   │   ├── rtx8000_4x.csv                  # 4×RTX8000, LLaMA-3.3-70B-Instruct QLoRA
+│   │   ├── l40s_4x.csv                     # 4×L40S, LLaMA-3.3-70B-Instruct QLoRA
+│   │   ├── h200_4x.csv                     # 4×H200, LLaMA-2-70B-chat QLoRA (micro-batch 16×2)
+│   │   └── h200_4x_b8x2.csv                # same as above with micro-batch 8×2 (two-DC variant)
+│   └── traces_regulated.pkl                # storage-regulated tail (used by Fig 6)
+├── main.ipynb                              # Tables I/II + Figs 3-6 + scaling appendix
+└── figures/                                # regenerated by the notebook
 ```
 
-## Environment
+## Reproduce
 
-The repository is notebook-driven and was developed for Python 3.10.
+A single notebook `main.ipynb` reproduces every numerical result and every figure in Section V. It ships pre-executed, so the results, printed tables, and embedded figures can be reviewed without running anything.
 
-Recommended packages:
-
-- `numpy`
-- `pandas`
-- `matplotlib`
-- `cvxpy`
-- `networkx`
-- `mat4py`
-- `gymnasium`
-- `jupyter`
-
-Example setup:
+To re-run locally (Python &ge; 3.10):
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install numpy pandas matplotlib cvxpy networkx mat4py gymnasium jupyter
+python -m venv .venv                        # create an isolated environment in the local clone
+source .venv/bin/activate                   # Windows: .\.venv\Scripts\Activate.ps1
+pip install -e ".[notebook]"                # installs deps + makes `switchref` importable anywhere
+jupyter notebook                            # then open main.ipynb and run all cells
 ```
 
-On Windows PowerShell:
+(Without `pip install -e .`, the notebook falls back to `sys.path` injection, so it still runs as long as Jupyter is launched from inside `switchref/`.)
 
-```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install numpy pandas matplotlib cvxpy networkx mat4py gymnasium jupyter
-```
+`main.ipynb` writes figures into `figures/`. The reported metric values come from this notebook and match bit-exactly on the included data (verified to ≤ 0.01 × 10⁻⁴&nbsp;p.u.). Sections:
 
-## Data and Included Models
+| Section | Reproduces |
+|---|---|
+| Table I | DGX-H100, 4×RTX8000, 4×L40S, 4×H200 |
+| Fig 3 | 4×H200 detail |
+| Fig 4 | three-trace overlay |
+| Two-DC | Table II + Fig 5 (§V-B.1) |
+| Fig 6 | load smoothing (§V-B.2) |
 
-This repository includes:
+The figures use `matplotlib.rcParams['text.usetex'] = True`. A working LaTeX install (TeX&nbsp;Live, MiKTeX, or MacTeX) is required to regenerate the PDFs. `pdflatex` and `dvipng` must be reachable from the shell that launches Jupyter; on Windows with MiKTeX, add the MiKTeX `bin/x64` directory to `PATH` before starting Jupyter. If LaTeX is unavailable, set `text.usetex` to `False` before running. The numerical results are unaffected.
 
-- raw AI-training power traces in `data/traces_raw/`
-- a processed trace artifact in `data/traces_regulated.pkl`
-- IEEE 33-bus feeder data in CSV and MAT formats
-- a precomputed linear gain used by the switching experiments
+## Data sources
 
-The feeder studies rely on the included model files:
-
-- `datacenter_optimization/Bus_Data_33bus.csv`
-- `datacenter_optimization/Branch_Data_33bus.csv`
-- `decentralized_switching/TestCase33.mat`
-
-## Usage
-
-A typical workflow for this repository is:
-
-1. Create a Python environment and install the required packages.
-2. Open the notebooks from the repository root or from their respective subdirectories.
-3. Update any local file paths if your environment differs from the original development setup.
-4. Run the notebooks top to bottom to reproduce the experiments and figures.
-
-For most users, the recommended entry point is:
-
-```text
-decentralized_switching/main.ipynb
-```
-
-This notebook reproduces the main switching-reference voltage control experiments reported in the manuscript.
-
-If you are interested in the data-center-side modeling and feeder response to AI-training traces, use:
-
-```text
-datacenter_optimization/historic-power-droop.ipynb
-```
-
-## Running the Code
-
-### A. Reproduce the main switching-reference experiments
-
-Open and run:
-
-```text
-decentralized_switching/main.ipynb
-```
-
-This notebook:
-
-- loads the linearized feeder model
-- initializes the voltage dynamics
-- loads the precomputed controller gain
-- simulates decentralized switching-reference voltage control
-- generates the main plots for unregulated, weak-grid, and regulated cases
-
-### B. Run the data-center-aware feeder experiments
-
-Open and run:
-
-```text
-datacenter_optimization/historic-power-droop.ipynb
-```
-
-This notebook:
-
-- loads feeder data from the included IEEE 33-bus CSV files
-- loads AI-training traces from `data/traces_raw/`
-- constructs data-center and storage objects
-- evaluates voltage and power behavior under data-center-aware settings
-
-Before running, update the notebook's trace path if needed. The current notebook contains a development-machine path, so it should be replaced with a repository-local path such as:
-
-```python
-data_path = "../data/traces_raw"
-```
-
-## Figures
-
-The `figures/` directory contains exported figures generated during manuscript preparation. These files are useful as reference outputs when checking whether a reproduced run is qualitatively consistent with the paper.
-
-Small differences in formatting or plotting appearance may occur across environments, package versions, or notebook execution order.
-
-## Reproducibility Notes
-
-- The two notebooks above are the main experiment entry points.
-- Some notebook cells still reflect the original research environment and may require small local path edits.
-- Random seeds are fixed in parts of the code, but exact numerical traces or figure formatting may still vary slightly across systems.
-- The repository is organized as a research artifact rather than as a packaged software library.
+| Trace | Source |
+|---|---|
+| `dgx_h100_choukse.csv` | Public release accompanying [Choukse&nbsp;et&nbsp;al.,&nbsp;arXiv:2508.14318](https://arxiv.org/abs/2508.14318), rescaled and resampled. |
+| `rtx8000_4x.csv` | Measured at NYU HPC; QLoRA fine-tuning of [`meta-llama/Llama-3.3-70B-Instruct`](https://huggingface.co/meta-llama/Llama-3.3-70B-Instruct) on 4×RTX8000. |
+| `l40s_4x.csv` | Measured at NYU HPC; QLoRA fine-tuning of [`meta-llama/Llama-3.3-70B-Instruct`](https://huggingface.co/meta-llama/Llama-3.3-70B-Instruct) on 4×L40S. |
+| `h200_4x.csv` | Measured at NYU HPC; QLoRA fine-tuning of [`meta-llama/Llama-2-70b-chat-hf`](https://huggingface.co/meta-llama/Llama-2-70b-chat-hf) on 4×H200 with micro-batch 16×2 (sequence length 2048, LoRA rank 64). |
+| `h200_4x_b8x2.csv` | Same model and setup as `h200_4x.csv`, but with smaller micro-batch 8×2. |
+| `traces_regulated.pkl` | Paired DC-bus power time series (`unregulated` / `regulated`). The `regulated` track applies an internal storage + UPS dispatch (supplementary material) that smooths compute-phase fluctuations; Fig 6 splices the two. |
 
 ## Citation
-
-If you use this repository, please cite the arXiv preprint:
 
 ```bibtex
 @misc{yan2026switchingreferencevoltagecontroldistribution,
@@ -196,15 +92,10 @@ If you use this repository, please cite the arXiv preprint:
 }
 ```
 
-Preprint:
-
-- [arXiv:2603.15588](https://arxiv.org/abs/2603.15588)
-
 ## License
 
-This project is released under the MIT License. See `LICENSE` for details.
+Released under the MIT License. See `LICENSE`.
 
 ## Contact
 
-For questions about the code, experiments, or reproduction details, please contact the paper authors.
-
+For questions about the code, experiments, or reproduction details, please open an issue on the GitHub repository or contact the corresponding author.

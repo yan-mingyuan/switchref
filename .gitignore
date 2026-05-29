@@ -1,17 +1,40 @@
-################################################################################
-# External Repositories to Ignore
-################################################################################
-# Other local repos that should not be tracked here
-projects/
-llm_example/logs*
-
-# Local temporary artifacts
-paper_extract.txt
-
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+#  Usually these files are written by a python script from a template
+#  before PyInstaller builds the exe, so as to inject date/other infos into it.
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
 
 # Unit test / coverage reports
 htmlcov/
@@ -28,7 +51,7 @@ coverage.xml
 .pytest_cache/
 
 # Jupyter Notebook
-.ipynb_checkpoints/
+.ipynb_checkpoints
 
 # IPython
 profile_default/
@@ -56,17 +79,23 @@ ENV/
 env.bak/
 venv.bak/
 
-# Editor settings
-.vscode/
-.idea/
+# Spyder project settings
 .spyderproject
 .spyproject
 
+# Rope project settings
+.ropeproject
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Editor settings
+.vscode/
+.idea/
+
 # OS files
 .DS_Store
+Thumbs.db
 *Zone.Identifier
-
-# Local project scratch files
-scratch/test.net
-src/test_parsing.py
-__my*

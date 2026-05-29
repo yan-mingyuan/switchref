@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "switchref"
+version = "1.0.0"
+description = "Switching-reference voltage control for distribution systems with AI-training data centers."
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.10"
+authors = [
+    { name = "Mingyuan Yan" },
+    { name = "Trager Joswig-Jones" },
+    { name = "Baosen Zhang" },
+    { name = "Yize Chen" },
+    { name = "Wenqi Cui" },
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering",
+]
+dependencies = [
+    "numpy>=1.24",
+    "pandas>=2.0",
+    "matplotlib>=3.7",
+    "mat4py>=0.6",
+    "gymnasium>=0.29",
+]
+
+[project.optional-dependencies]
+notebook = ["jupyter"]
+
+[project.urls]
+Repository = "https://github.com/yan-mingyuan/switchref"
+Preprint = "https://arxiv.org/abs/2603.15588"
+
+[tool.setuptools.packages.find]
+include = ["switchref*"]
+exclude = ["data*", "figures*", "main_experiments*", "data_center_extensions*"]
