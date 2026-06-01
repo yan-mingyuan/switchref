@@ -31,7 +31,7 @@ switchref/
 │   │   └── linear_gain.pkl                 # pre-computed per-bus droop gain
 │   ├── traces/
 │   │   ├── dgx_h100_choukse.csv            # DGX-H100 rack (Choukse 2025)
-│   │   ├── rtx8000_4x.csv                  # 4×RTX8000, LLaMA-3.3-70B-Instruct QLoRA
+│   │   ├── rtx8000.csv                     # RTX8000 (single GPU), LLaMA-3.3-70B-Instruct QLoRA
 │   │   ├── l40s_4x.csv                     # 4×L40S, LLaMA-3.3-70B-Instruct QLoRA
 │   │   ├── h200_4x.csv                     # 4×H200, LLaMA-2-70B-chat QLoRA (micro-batch 16×2)
 │   │   └── h200_4x_b8x2.csv                # same as above with micro-batch 8×2 (two-DC variant)
@@ -72,7 +72,7 @@ The figures use `matplotlib.rcParams['text.usetex'] = True`. A working LaTeX ins
 | Trace | Source |
 |---|---|
 | `dgx_h100_choukse.csv` | Public release accompanying [Choukse&nbsp;et&nbsp;al.,&nbsp;arXiv:2508.14318](https://arxiv.org/abs/2508.14318), rescaled and resampled. |
-| `rtx8000_4x.csv` | Measured at NYU HPC; QLoRA fine-tuning of [`meta-llama/Llama-3.3-70B-Instruct`](https://huggingface.co/meta-llama/Llama-3.3-70B-Instruct) on 4×RTX8000. |
+| `rtx8000.csv` | Measured at NYU HPC; single RTX8000 GPU extracted from a 4-GPU QLoRA training of [`meta-llama/Llama-3.3-70B-Instruct`](https://huggingface.co/meta-llama/Llama-3.3-70B-Instruct). |
 | `l40s_4x.csv` | Measured at NYU HPC; QLoRA fine-tuning of [`meta-llama/Llama-3.3-70B-Instruct`](https://huggingface.co/meta-llama/Llama-3.3-70B-Instruct) on 4×L40S. |
 | `h200_4x.csv` | Measured at NYU HPC; QLoRA fine-tuning of [`meta-llama/Llama-2-70b-chat-hf`](https://huggingface.co/meta-llama/Llama-2-70b-chat-hf) on 4×H200 with micro-batch 16×2 (sequence length 2048, LoRA rank 64). |
 | `h200_4x_b8x2.csv` | Same model and setup as `h200_4x.csv`, but with smaller micro-batch 8×2. |

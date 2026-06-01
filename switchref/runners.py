@@ -146,10 +146,10 @@ def load_l40s(ctx: dict) -> dict:
 
 
 def load_rtx8000(ctx: dict) -> dict:
-    """4xRTX8000 trace (LLaMA-3.3-70B QLoRA). Cycle ~82 s."""
+    """RTX8000 trace (single GPU extracted from a 4-GPU LLaMA-3.3-70B-Instruct QLoRA training). Cycle ~82 s."""
     amp = 0.10 * 0.95 / ctx["R_dc_self"]
     t_sys, pwr_sys = _read_pwr_csv(
-        TRACE_DIR / "rtx8000_4x.csv",
+        TRACE_DIR / "rtx8000.csv",
         slice(3000, 28500), ctx["dt_sys"], interpolate=True,
     )
     return _build_realistic(t_sys, pwr_sys, ctx, amp)
@@ -356,8 +356,8 @@ def closed_loop_two_bus(
 
 # Trace registry: (name, cycle_s, loader). Order = Table I row order.
 TRACES = (
-    ("DGX-H100",  T_CYCLE_DGX_H100, load_dgx_h100),
-    ("4xRTX8000", T_CYCLE_RTX8000,  load_rtx8000),
-    ("4xL40S",    T_CYCLE_L40S,     load_l40s),
-    ("4xH200",    T_CYCLE_H200,     load_h200),
+    ("DGX-H100", T_CYCLE_DGX_H100, load_dgx_h100),
+    ("RTX8000",  T_CYCLE_RTX8000,  load_rtx8000),
+    ("4xL40S",   T_CYCLE_L40S,     load_l40s),
+    ("4xH200",   T_CYCLE_H200,     load_h200),
 )
