@@ -7,7 +7,7 @@ import pandas as pd
 
 from .config import (
     SEED, TRACE_DIR,
-    T_CYCLE_DGX_H100, T_CYCLE_RTX8000, T_CYCLE_L40S, T_CYCLE_H200,
+    T_CYCLE_DGX_H100, T_CYCLE_RTX8000, T_CYCLE_H100, T_CYCLE_L40S, T_CYCLE_H200,
 )
 from .case33 import load_case33, load_linear_gain
 from .env import Voltage
@@ -131,6 +131,16 @@ def load_h200(ctx: dict) -> dict:
     t_sys, pwr_sys = _read_pwr_csv(
         TRACE_DIR / "h200_4x.csv",
         slice(1500, 28500), ctx["dt_sys"], interpolate=False,
+    )
+    return _build_realistic(t_sys, pwr_sys, ctx, amp)
+
+
+def load_h100(ctx: dict) -> dict:
+    """4xH100 trace (LLaMA-3.3-70B-Instruct QLoRA). Cycle ~97 s."""
+    amp = 0.10 * 0.95 / ctx["R_dc_self"]
+    t_sys, pwr_sys = _read_pwr_csv(
+        TRACE_DIR / "h100_4x.csv",
+        slice(0, 22500), ctx["dt_sys"], interpolate=True,
     )
     return _build_realistic(t_sys, pwr_sys, ctx, amp)
 
@@ -357,7 +367,7 @@ def closed_loop_two_bus(
 # Trace registry: (name, cycle_s, loader). Order = Table I row order.
 TRACES = (
     ("DGX-H100", T_CYCLE_DGX_H100, load_dgx_h100),
-    ("RTX8000",  T_CYCLE_RTX8000,  load_rtx8000),
+    ("4xH100",   T_CYCLE_H100,     load_h100),
     ("4xL40S",   T_CYCLE_L40S,     load_l40s),
     ("4xH200",   T_CYCLE_H200,     load_h200),
 )

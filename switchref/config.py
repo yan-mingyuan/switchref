@@ -26,5 +26,6 @@ DEADBAND = 0.02
 # Workload cycle period per trace (seconds)
 T_CYCLE_DGX_H100 = 17
 T_CYCLE_RTX8000  = 82
+T_CYCLE_H100     = 97
 T_CYCLE_L40S     = 107
 T_CYCLE_H200     = 132
