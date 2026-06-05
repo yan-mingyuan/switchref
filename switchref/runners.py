@@ -7,7 +7,8 @@ import pandas as pd
 
 from .config import (
     SEED, TRACE_DIR,
-    T_CYCLE_DGX_H100, T_CYCLE_RTX8000, T_CYCLE_H100, T_CYCLE_L40S, T_CYCLE_H200,
+    T_CYCLE_DGX_H100, T_CYCLE_RTX8000, T_CYCLE_H100, T_CYCLE_L40S,
+    T_CYCLE_A100, T_CYCLE_H200,
 )
 from .case33 import load_case33, load_linear_gain
 from .env import Voltage
@@ -91,13 +92,24 @@ def setup_two_bus() -> dict:
 # ---------------------------------------------------------------------------
 
 def _build_realistic(t_sys: np.ndarray, pwr_sys: np.ndarray, ctx: dict, amp: float) -> dict:
-    """Shape a raw power array into the dict expected by `closed_loop`."""
+    """Shape a raw power array into the dict expected by `closed_loop`.
+
+    Power values are Winsorized at the 5th/95th percentiles before rescaling,
+    so sub-second outlier spikes (notably present in 4xA100 training traces)
+    do not collapse the typical phase swing into a fraction of ``amp``.
+    """
     stride_pwr = ctx["stride_pwr"]
     R_dc_row = ctx["R_dc_row"]
     t_pwr = t_sys[::stride_pwr]
     pwr_pwr = -pwr_sys[::stride_pwr]
 
-    dP_sys, scale = rescale_diff(pwr_sys, amp, return_scale=True)
+    p_lo = float(np.percentile(pwr_sys, 5))
+    p_hi = float(np.percentile(pwr_sys, 95))
+    pwr_clip = np.clip(pwr_sys, p_lo, p_hi).astype(pwr_sys.dtype)
+    d = p_hi - p_lo
+    y = (pwr_clip - p_lo) / d * amp
+    dP_sys = np.diff(y).astype(np.float32)
+    scale = amp / d
     dP_last, T_sys = make_dP_last_from_data(dP_sys)
     v_sens = scale * R_dc_row
     return {
@@ -127,7 +139,7 @@ def _read_pwr_csv(path, slice_obj, dt_sys, *, interpolate: bool):
 
 def load_h200(ctx: dict) -> dict:
     """4xH200 trace (LLaMA-2-70B-chat QLoRA). Cycle ~132 s."""
-    amp = 0.10 * 0.95 / ctx["R_dc_self"]
+    amp = 0.10 * 0.90 / ctx["R_dc_self"]
     t_sys, pwr_sys = _read_pwr_csv(
         TRACE_DIR / "h200_4x.csv",
         slice(1500, 28500), ctx["dt_sys"], interpolate=False,
@@ -137,7 +149,7 @@ def load_h200(ctx: dict) -> dict:
 
 def load_h100(ctx: dict) -> dict:
     """4xH100 trace (LLaMA-3.3-70B-Instruct QLoRA). Cycle ~97 s."""
-    amp = 0.10 * 0.95 / ctx["R_dc_self"]
+    amp = 0.10 * 0.90 / ctx["R_dc_self"]
     t_sys, pwr_sys = _read_pwr_csv(
         TRACE_DIR / "h100_4x.csv",
         slice(0, 22500), ctx["dt_sys"], interpolate=True,
@@ -147,7 +159,7 @@ def load_h100(ctx: dict) -> dict:
 
 def load_l40s(ctx: dict) -> dict:
     """4xL40S trace (LLaMA-3.3-70B-Instruct QLoRA). Cycle ~107 s."""
-    amp = 0.10 * 0.95 / ctx["R_dc_self"]
+    amp = 0.10 * 0.90 / ctx["R_dc_self"]
     t_sys, pwr_sys = _read_pwr_csv(
         TRACE_DIR / "l40s_4x.csv",
         slice(1620, 22200), ctx["dt_sys"], interpolate=True,
@@ -155,9 +167,19 @@ def load_l40s(ctx: dict) -> dict:
     return _build_realistic(t_sys, pwr_sys, ctx, amp)
 
 
+def load_a100(ctx: dict) -> dict:
+    """4xA100 trace (LLaMA-3.3-70B-Instruct QLoRA). Cycle ~131 s."""
+    amp = 0.10 * 0.90 / ctx["R_dc_self"]
+    t_sys, pwr_sys = _read_pwr_csv(
+        TRACE_DIR / "a100_4x.csv",
+        slice(0, 22500), ctx["dt_sys"], interpolate=True,
+    )
+    return _build_realistic(t_sys, pwr_sys, ctx, amp)
+
+
 def load_rtx8000(ctx: dict) -> dict:
     """RTX8000 trace (single GPU extracted from a 4-GPU LLaMA-3.3-70B-Instruct QLoRA training). Cycle ~82 s."""
-    amp = 0.10 * 0.95 / ctx["R_dc_self"]
+    amp = 0.10 * 0.90 / ctx["R_dc_self"]
     t_sys, pwr_sys = _read_pwr_csv(
         TRACE_DIR / "rtx8000.csv",
         slice(3000, 28500), ctx["dt_sys"], interpolate=True,
@@ -171,7 +193,7 @@ def load_dgx_h100(ctx: dict, target_seconds: float = 4260.0) -> dict:
     (max-type) reaches convergence. Cycle ~17 s.
     """
     dt_sys = ctx["dt_sys"]
-    amp = 0.10 * 0.95 / ctx["R_dc_self"]
+    amp = 0.10 * 0.90 / ctx["R_dc_self"]
 
     df = pd.read_csv(TRACE_DIR / "dgx_h100_choukse.csv")
     df = df.rename(columns={"time_s": "t", "gpu_power_norm": "pwr"})
@@ -201,10 +223,14 @@ def load_h200_regulated(ctx: dict) -> dict:
     looks visibly attenuated.
     """
     R_dc_self = ctx["R_dc_self"]
-    amp = 0.10 * 0.95 / R_dc_self
+    amp = 0.10 * 0.90 / R_dc_self
 
     df = pd.read_csv(TRACE_DIR / "h200_4x.csv")
     pwr_unreg = df["pwr"][slice(1500, 15001)].to_numpy(np.float32)
+    # Match _build_realistic: Winsorize at p5/p95 before rescaling.
+    p_lo = float(np.percentile(pwr_unreg, 5))
+    p_hi = float(np.percentile(pwr_unreg, 95))
+    pwr_unreg = np.clip(pwr_unreg, p_lo, p_hi).astype(np.float32)
     dP_unreg, _ = rescale_diff(pwr_unreg, amp, return_scale=True)
     xmin_unreg, xmax_unreg = float(np.min(pwr_unreg)), float(np.max(pwr_unreg))
     p0_unreg = (pwr_unreg[0] - xmin_unreg) / (xmax_unreg - xmin_unreg) * amp
@@ -251,11 +277,17 @@ def load_two_bus(ctx: dict) -> dict:
     dPs = {}
     Ts = []
     for b in dc_buses:
-        amp = 0.10 * 0.95 / R[b, b]
+        amp = 0.10 * 0.90 / R[b, b]
         t_sys, pwr_sys = _read_pwr_csv(
             files[b], slice(2300, 28500), dt_sys, interpolate=True,
         )
-        dP_sys, _ = rescale_diff(pwr_sys, amp, return_scale=True)
+        # Match _build_realistic: Winsorize at p5/p95 before rescaling.
+        p_lo = float(np.percentile(pwr_sys, 5))
+        p_hi = float(np.percentile(pwr_sys, 95))
+        pwr_clip = np.clip(pwr_sys, p_lo, p_hi).astype(np.float32)
+        d = p_hi - p_lo
+        y = (pwr_clip - p_lo) / d * amp
+        dP_sys = np.diff(y).astype(np.float32)
         dP_last, T_sys = make_dP_last_from_data(dP_sys)
         dPs[b] = dP_last
         Ts.append(T_sys)
@@ -369,5 +401,6 @@ TRACES = (
     ("DGX-H100", T_CYCLE_DGX_H100, load_dgx_h100),
     ("4xH100",   T_CYCLE_H100,     load_h100),
     ("4xL40S",   T_CYCLE_L40S,     load_l40s),
+    ("4xA100",   T_CYCLE_A100,     load_a100),
     ("4xH200",   T_CYCLE_H200,     load_h200),
 )
