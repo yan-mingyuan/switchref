@@ -398,9 +398,8 @@ def closed_loop_two_bus(
 
 # Trace registry: (name, cycle_s, loader). Order = Table I row order.
 TRACES = (
-    ("DGX-H100", T_CYCLE_DGX_H100, load_dgx_h100),
-    ("4xH100",   T_CYCLE_H100,     load_h100),
-    ("4xL40S",   T_CYCLE_L40S,     load_l40s),
-    ("4xA100",   T_CYCLE_A100,     load_a100),
     ("4xH200",   T_CYCLE_H200,     load_h200),
+    ("4xA100",   T_CYCLE_A100,     load_a100),
+    ("4xL40S",   T_CYCLE_L40S,     load_l40s),
+    ("DGX-H100", T_CYCLE_DGX_H100, load_dgx_h100),
 )
