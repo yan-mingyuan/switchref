@@ -21,7 +21,7 @@ from .case33 import load_case33, load_linear_gain
 from .utils import (
     set_seed,
     action_linear, action_fractional, ACTION_REGISTRY,
-    rescale_diff, make_dP_last_from_data,
+    rescale_diff, make_dP_last_from_data, make_dP_last_multi_square,
     make_bus_colors,
     compute_metrics,
 )
@@ -45,7 +45,7 @@ __all__ = [
     "load_case33", "load_linear_gain",
     "set_seed",
     "action_linear", "action_fractional", "ACTION_REGISTRY",
-    "rescale_diff", "make_dP_last_from_data",
+    "rescale_diff", "make_dP_last_from_data", "make_dP_last_multi_square",
     "make_bus_colors", "compute_metrics",
     "RingSeries", "BaseAdaController", "AdaRefVBiasAmpMaxDV",
     "setup_common", "setup_two_bus",

@@ -78,6 +78,42 @@ def make_dP_last_from_data(dP):
     return dP_last, len(dP)
 
 
+def make_dP_last_multi_square(start, stages):
+    """Build an idealized square-wave disturbance train: a `+amp` impulse at
+    every low->high (communication->compute) edge and a `-amp` impulse at every
+    high->low edge. Used for the Section III motivation figure, where a clean
+    two-level load isolates the power->voltage step relation from the intra-phase
+    fluctuations present in the measured traces.
+
+    Parameters
+    ----------
+    start : int
+        Step index of the first rising edge.
+    stages : list of dict
+        Each stage has keys ``amp`` (step magnitude), ``T_on`` (compute-phase
+        length, steps), ``T_off`` (communication-phase length, steps), and
+        ``cycles`` (number of on/off cycles in the stage).
+
+    Returns
+    -------
+    (callable, int)
+        ``dP_last(t)`` returning the impulse at step ``t`` (0 elsewhere), and the
+        total length in steps.
+    """
+    impulse = {}
+    t = start
+    for st in stages:
+        amp = float(st["amp"]); T_on = int(st["T_on"])
+        T_off = int(st["T_off"]); cycles = int(st["cycles"])
+        for _ in range(cycles):
+            impulse[t] = +amp; t += T_on
+            impulse[t] = -amp; t += T_off
+
+    def dP_last(t_now):
+        return impulse.get(t_now, 0.0)
+    return dP_last, t
+
+
 # ---------------------------------------------------------------------------
 # Visualization palette
 # ---------------------------------------------------------------------------
