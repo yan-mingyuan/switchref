@@ -34,7 +34,7 @@ switchref/
 │   │   ├── rtx8000.csv                     # RTX8000 (single GPU), LLaMA-3.3-70B-Instruct QLoRA
 │   │   ├── l40s_4x.csv                     # 4×L40S, LLaMA-3.3-70B-Instruct QLoRA
 │   │   ├── a100_4x.csv                     # 4×A100, LLaMA-3.3-70B-Instruct QLoRA
-│   │   ├── h100_4x.csv                     # 4×H100, LLaMA-3.3-70B-Instruct QLoRA (auxiliary)
+│   │   ├── h100_4x.csv                     # 4×H100, LLaMA-3.3-70B-Instruct QLoRA
 │   │   ├── h200_4x.csv                     # 4×H200, LLaMA-2-70B-chat QLoRA (micro-batch 16×2)
 │   │   └── h200_4x_b8x2.csv                # same as above with micro-batch 8×2 (two-DC variant)
 │   └── traces_regulated.pkl                # storage-regulated tail (used by Fig 6)
@@ -79,7 +79,7 @@ The figures use `matplotlib.rcParams['text.usetex'] = True`. A working LaTeX ins
 | `rtx8000.csv` | Measured at NYU HPC; single RTX8000 GPU extracted from a 4-GPU QLoRA training of [`meta-llama/Llama-3.3-70B-Instruct`](https://huggingface.co/meta-llama/Llama-3.3-70B-Instruct). |
 | `l40s_4x.csv` | Measured at NYU HPC; QLoRA fine-tuning of [`meta-llama/Llama-3.3-70B-Instruct`](https://huggingface.co/meta-llama/Llama-3.3-70B-Instruct) on 4×L40S. |
 | `a100_4x.csv` | Measured at NYU HPC; QLoRA fine-tuning of [`meta-llama/Llama-3.3-70B-Instruct`](https://huggingface.co/meta-llama/Llama-3.3-70B-Instruct) on 4×A100. |
-| `h100_4x.csv` | Measured at NYU HPC; QLoRA fine-tuning of [`meta-llama/Llama-3.3-70B-Instruct`](https://huggingface.co/meta-llama/Llama-3.3-70B-Instruct) on 4×H100 (node-level; auxiliary trace, not in Table I). |
+| `h100_4x.csv` | Measured at NYU HPC; QLoRA fine-tuning of [`meta-llama/Llama-3.3-70B-Instruct`](https://huggingface.co/meta-llama/Llama-3.3-70B-Instruct) on 4×H100. |
 | `h200_4x.csv` | Measured at NYU HPC; QLoRA fine-tuning of [`meta-llama/Llama-2-70b-chat-hf`](https://huggingface.co/meta-llama/Llama-2-70b-chat-hf) on 4×H200 with micro-batch 16×2 (sequence length 2048, LoRA rank 64). |
 | `h200_4x_b8x2.csv` | Same model and setup as `h200_4x.csv`, but with smaller micro-batch 8×2. |
 | `traces_regulated.pkl` | Paired DC-bus power time series (`unregulated` / `regulated`). The `regulated` track applies an internal storage + UPS dispatch (supplementary material) that smooths compute-phase fluctuations; Fig 6 splices the two. |
